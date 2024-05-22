@@ -1,7 +1,7 @@
+import json
 from tkinter import *
 from tkinter import messagebox
 from random import choice, randint, shuffle
-import pyperclip
 
 FONT = ("Arial", 10, "normal")
 
@@ -23,10 +23,9 @@ def generate_password():
     shuffle(password_list)
 
     password_input.delete(0, END)
-    
+
     password = "".join(password_list)
     password_input.insert(0, password)
-    pyperclip.copy(password)
 
 
 # ---------------------------- SAVE PASSWORD ------------------------------- #
@@ -34,7 +33,10 @@ def save():
     website = website_input.get()
     email = email_input.get()
     password = password_input.get()
-
+    new_data = {website: {
+        "email": email,
+        "password": password,
+    }}
     if len(website) == 0 or len(password) == 0:
         messagebox.showerror(title="Oops!", message="Please don't leave any fields empty!")
 
@@ -42,12 +44,36 @@ def save():
         is_ok = messagebox.askokcancel(title=website, message=f"These are the details entered: \n Email: {email} "
                                                               f"\nPassword: {password}\n Do you wish to save this details?")
         if is_ok:
-            with open("data.txt", "a") as f:
-                f.write(f"{website} | {email} | {password}\n")
+            try:
+                with open("data.json", "r") as data_file:
+                    #Reading old data
+                    data = json.load(data_file)
+            except FileNotFoundError:
+                with open("data.json", "w") as data_file:
+                    # Update data with new_data
+                    json.dump(new_data, data_file, indent=4)
+            else:
+                # Update data with new_data
+                data.update(new_data)
+                with open("data.json", "w") as data_file:
+                    #Saving updated data
+                    json.dump(data, data_file, indent=4)
+            finally:
+                # Reset input fields
                 email_input.delete(0, END)
                 email_input.insert(0, "example@mail.com")
                 password_input.delete(0, END)
                 website_input.delete(0, END)
+
+
+# ---------------------------- FIND PASSWORD ------------------------------- #
+def find_password():
+    with open("data.json", "r") as data_file:
+        data = json.load(data_file)
+        if website_input.get() in data:
+            print("yes")
+        else:
+            print("There is no")
 
 
 # ---------------------------- UI SETUP ------------------------------- #
@@ -74,8 +100,8 @@ password_label = Label(text="Password:", font=FONT)
 password_label.grid(column=0, row=3)
 
 #### Input Fields ####
-website_input = Entry(width=43)
-website_input.grid(column=1, row=1, columnspan=2)
+website_input = Entry(width=23)
+website_input.grid(column=1, row=1)
 website_input.focus()
 email_input = Entry(width=43)
 email_input.insert(END, "example@mail.com")
@@ -90,5 +116,8 @@ generate_btn.grid(column=2, row=3)
 
 add_btn = Button(text="Add", width=41, command=save)
 add_btn.grid(column=1, row=4, columnspan=2)
+
+search_btn = Button(text="Search", width=15, command=find_password)
+search_btn.grid(column=2, row=1)
 
 window.mainloop()
